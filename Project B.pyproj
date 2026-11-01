@@ -21,7 +21,9 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="accuweather_mcp.py" />
     <Compile Include="Project_B.py" />
+    <Compile Include="test_accuweather_mcp.py" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="requirements.txt" />
