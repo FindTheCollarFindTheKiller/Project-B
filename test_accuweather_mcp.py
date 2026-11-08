@@ -93,7 +93,12 @@ class GuiLocationTests(unittest.TestCase):
             "city_entry": Mock(),
             "detect_location": Mock(),
             "get_current_weather": Mock(),
+            "get_daily_forecast": Mock(return_value=[]),
+            "get_hourly_forecast": Mock(return_value=[]),
+            "use_metric_units": lambda: True,
             "show_weather": Mock(),
+            "render_forecast": Mock(),
+            "render_hourly_forecast": Mock(),
             "Queue": __import__("queue").Queue,
             "Empty": __import__("queue").Empty,
             "Thread": lambda target, daemon: SimpleNamespace(start=target),
@@ -119,6 +124,8 @@ class GuiLocationTests(unittest.TestCase):
         self.namespace["use_my_location"]()
         self.namespace["get_current_weather"].assert_called_once_with(location, "test-key")
         self.namespace["show_weather"].assert_called_once_with(location, current)
+        self.namespace["render_forecast"].assert_called_once_with([])
+        self.namespace["render_hourly_forecast"].assert_called_once_with([])
         self.namespace["city_entry"].insert.assert_called_once_with(0, "Test City")
         self.namespace["location_button"].configure.assert_called_with(state="normal", text="Use my location")
         self.namespace["search_button"].configure.assert_called_with(state="normal")
@@ -144,6 +151,17 @@ class WeatherLookupTests(unittest.TestCase):
         result = namespace["get_current_weather"]({"Key": "123"}, "test-key")
         self.assertEqual(result, {"WeatherText": "Sunny"})
         request.assert_called_once_with("/currentconditions/v1/123", {"apikey": "test-key", "details": "true"})
+
+    def test_hourly_forecast_uses_the_detected_location_key(self):
+        source = Path(__file__).with_name("Project_B.py").read_text(encoding="utf-8")
+        tree = ast.parse(source)
+        function = next(node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == "get_hourly_forecast")
+        request = Mock(return_value=[{"DateTime": "2026-01-01T09:00:00+00:00"}])
+        namespace = {"accuweather_get": request, "quote": __import__("urllib.parse", fromlist=["quote"]).quote}
+        exec(compile(ast.Module(body=[function], type_ignores=[]), "Project_B.py", "exec"), namespace)
+        result = namespace["get_hourly_forecast"]({"Key": "123"}, "test-key")
+        self.assertEqual(result, [{"DateTime": "2026-01-01T09:00:00+00:00"}])
+        request.assert_called_once_with("/forecasts/v1/hourly/12hour/123", {"apikey": "test-key", "metric": "true", "details": "false"})
 
 
 if __name__ == "__main__":
